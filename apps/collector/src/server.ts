@@ -119,6 +119,8 @@ export function createCollector({
     // Ingest is public by nature (like a Sentry DSN) and requests carry no
     // credentials, so a wildcard origin is safe and lets any app report.
     response.setHeader('Access-Control-Allow-Origin', '*');
+    // Not CORS-safelisted: without this the SDK cannot read it cross-origin.
+    response.setHeader('Access-Control-Expose-Headers', 'Retry-After');
 
     if (request.method === 'OPTIONS') {
       response.writeHead(204, {

@@ -1,4 +1,4 @@
-import { validateEvent, type Metadata } from '@fop/schema';
+import { validateEvent, type EventBatch, type Metadata } from '@fop/schema';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createObservability, type ObservabilityOptions } from './client.ts';
 import { createRecordingTransport } from './test-utils.ts';
@@ -170,5 +170,116 @@ describe('createObservability', () => {
     verbose.track('a');
     await verbose.flush();
     expect(warn).toHaveBeenCalledWith('[observability] dropped 1 event(s): HTTP 400');
+  });
+});
+
+describe('error storms', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('captures a repeated error a bounded number of times and reports the rest as a count', async () => {
+    vi.useFakeTimers();
+    const { observability, events } = setup({ maxBatchSize: 100 });
+
+    for (let i = 0; i < 100; i++) observability.captureError(new Error('render loop'));
+    observability.captureError(new Error('a different bug'));
+    await observability.flush();
+    expect(events()).toHaveLength(11);
+
+    vi.advanceTimersByTime(60_000);
+    observability.captureError(new Error('render loop'), { feature: 'list' });
+    await observability.flush();
+
+    expect(events().at(-1)).toMatchObject({
+      error: { message: 'render loop' },
+      metadata: { suppressedOccurrences: 90, feature: 'list' },
+    });
+  });
+});
+
+describe('page lifecycle', () => {
+  function exitSetup() {
+    const exits: EventBatch[] = [];
+    const recording = createRecordingTransport();
+    const observability = createObservability({
+      application: 'a',
+      environment: 'e',
+      transport: { send: recording.send, sendOnExit: (batch) => void exits.push(batch) },
+    });
+    return { observability, exits, send: recording.send };
+  }
+
+  function setVisibility(state: DocumentVisibilityState) {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: state });
+    document.dispatchEvent(new Event('visibilitychange'));
+  }
+
+  afterEach(() => setVisibility('visible'));
+
+  it('hands buffered events to the exit path when the page is hidden', async () => {
+    const { observability, exits } = exitSetup();
+    observability.track('before-hide');
+
+    setVisibility('hidden');
+
+    expect(exits).toHaveLength(1);
+    await observability.shutdown();
+  });
+
+  it('also flushes on pagehide', async () => {
+    const { observability, exits } = exitSetup();
+    observability.track('before-navigation');
+
+    window.dispatchEvent(new Event('pagehide'));
+
+    expect(exits).toHaveLength(1);
+    await observability.shutdown();
+  });
+
+  it('stops listening after shutdown', async () => {
+    const { observability, exits } = exitSetup();
+    await observability.shutdown();
+
+    window.dispatchEvent(new Event('pagehide'));
+
+    expect(exits).toHaveLength(0);
+  });
+
+  it('never lets an exit-path failure escape into the page', async () => {
+    const observability = createObservability({
+      application: 'a',
+      environment: 'e',
+      transport: {
+        send: () => Promise.resolve({ ok: true }),
+        sendOnExit: () => {
+          throw new Error('exit exploded');
+        },
+      },
+    });
+    observability.track('x');
+    const uncaught = vi.fn();
+    window.addEventListener('error', uncaught);
+
+    window.dispatchEvent(new Event('pagehide'));
+
+    expect(uncaught).not.toHaveBeenCalled();
+    window.removeEventListener('error', uncaught);
+    await observability.shutdown();
+  });
+});
+
+describe('connectivity', () => {
+  it('holds events while the browser is offline and delivers them on the online event', async () => {
+    const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    const { observability, send } = setup();
+
+    observability.track('while-offline');
+    await observability.flush();
+    expect(send).not.toHaveBeenCalled();
+
+    onLine.mockReturnValue(true);
+    window.dispatchEvent(new Event('online'));
+
+    await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+    await observability.shutdown();
   });
 });

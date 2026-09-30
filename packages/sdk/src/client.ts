@@ -1,7 +1,9 @@
 import { LIMITS, type EventContext, type Metadata, type ObservabilityEvent } from '@fop/schema';
 import { createId, currentPage, resolveSessionId } from './context.ts';
+import { watchLifecycle } from './lifecycle.ts';
 import { normalizeError, sanitizeMetadata, truncate } from './normalize.ts';
 import { createPipeline } from './pipeline.ts';
+import { createRateLimiter } from './rate-limit.ts';
 import { createFetchTransport, type Transport } from './transport.ts';
 
 interface BaseOptions {
@@ -12,6 +14,8 @@ interface BaseOptions {
   maxBatchSize?: number;
   /** Default 5000 ms. */
   flushIntervalMs?: number;
+  /** Events buffered while the collector is unreachable. Default 500. */
+  maxQueueSize?: number;
   /** Logs SDK-internal problems to the console. Off by default. */
   debug?: boolean;
 }
@@ -23,14 +27,19 @@ export type ObservabilityOptions = BaseOptions &
 export interface Observability {
   captureError(error: unknown, metadata?: Metadata): void;
   track(name: string, metadata?: Metadata): void;
-  /** Sends buffered events now. Never rejects. */
+  /**
+   * Sends buffered events now, unless delivery is paused (offline, or backing
+   * off after the collector failed). Never rejects.
+   */
   flush(): Promise<void>;
-  /** Sends buffered events and stops accepting new ones. Never rejects. */
+  /** Flushes, stops accepting events and removes browser listeners. Never rejects. */
   shutdown(): Promise<void>;
 }
 
 const DEFAULT_BATCH_SIZE = 20;
 const DEFAULT_FLUSH_INTERVAL_MS = 5_000;
+const DEFAULT_MAX_QUEUE_SIZE = 500;
+const ERROR_LIMIT = { max: 10, windowMs: 60_000 };
 
 const NOOP: Observability = Object.freeze({
   captureError() {},
@@ -56,7 +65,14 @@ export function createObservability(options: ObservabilityOptions): Observabilit
     transport: options.transport ?? createFetchTransport(options.endpoint),
     maxBatchSize: Math.min(options.maxBatchSize ?? DEFAULT_BATCH_SIZE, LIMITS.maxEventsPerBatch),
     flushIntervalMs: options.flushIntervalMs ?? DEFAULT_FLUSH_INTERVAL_MS,
+    maxQueueSize: options.maxQueueSize ?? DEFAULT_MAX_QUEUE_SIZE,
     onDrop: (count, reason) => debug(`dropped ${count} event(s): ${reason}`),
+  });
+  const errorLimiter = createRateLimiter(ERROR_LIMIT);
+  const stopWatching = watchLifecycle({
+    onExit: () => pipeline.flushOnExit(),
+    onOnline: () => pipeline.resume(),
+    onError: (error) => debug('lifecycle handler failed', error),
   });
 
   const base = {
@@ -95,11 +111,20 @@ export function createObservability(options: ObservabilityOptions): Observabilit
 
   return {
     captureError(error, metadata) {
-      emit('captureError', () => ({
-        ...context(metadata),
-        type: 'error',
-        error: { source: 'manual', ...normalizeError(error) },
-      }));
+      emit('captureError', () => {
+        const normalized = normalizeError(error);
+        const decision = errorLimiter.check(`${normalized.name}: ${normalized.message}`);
+        if (!decision.allowed) return undefined;
+        // SDK key first, so it survives the metadata key limit.
+        const enriched = decision.suppressed
+          ? { suppressedOccurrences: decision.suppressed, ...metadata }
+          : metadata;
+        return {
+          ...context(enriched),
+          type: 'error',
+          error: { source: 'manual', ...normalized },
+        };
+      });
     },
     track(name, metadata) {
       emit('track', () => {
@@ -119,6 +144,7 @@ export function createObservability(options: ObservabilityOptions): Observabilit
     },
     shutdown() {
       closed = true;
+      stopWatching();
       return pipeline.flush();
     },
   };

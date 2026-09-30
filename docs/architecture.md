@@ -91,8 +91,8 @@ Each step ends with typecheck, lint, format check, tests, and an architecture re
 | 1   | `@fop/schema`: event model, limits, batch validation                                            | ✅     |
 | 2   | SDK core: `createObservability`, context enrichment, queue, size/time batching, fetch transport | ✅     |
 | 3   | Collector: ingest endpoint, validation, idempotent in-memory store, query API                   | ✅     |
-| 4   | SDK reliability: retry + backoff + jitter, offline pause, unload flush, queue cap, error dedup  | ⏳     |
-| 5   | SDK integrations: global errors, fetch instrumentation, navigation, Web Vitals, sampling        |        |
+| 4   | SDK reliability: retry + backoff + jitter, offline pause, unload flush, queue cap, error dedup  | ✅     |
+| 5   | SDK integrations: global errors, fetch instrumentation, navigation, Web Vitals, sampling        | ⏳     |
 | 6   | Demo app generating every event type                                                            |        |
 | 7   | Dashboard: overview, errors (grouped), requests, performance, event explorer                    |        |
 | 8   | Persistent storage (SQLite via `node:sqlite`) behind the same `EventStore`                      |        |

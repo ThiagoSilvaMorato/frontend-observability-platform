@@ -1,4 +1,4 @@
-import type { EventBatch, ObservabilityEvent } from '@fop/schema';
+import type { EventBatch, EventContext, ObservabilityEvent } from '@fop/schema';
 import { vi } from 'vitest';
 import type { SendResult, Transport } from './transport.ts';
 
@@ -20,7 +20,7 @@ export function createControllableTransport() {
   return { transport, pending };
 }
 
-export function fakeEvent(name = 'test'): ObservabilityEvent {
+function fakeContext(): EventContext {
   return {
     id: crypto.randomUUID(),
     timestamp: Date.now(),
@@ -28,7 +28,13 @@ export function fakeEvent(name = 'test'): ObservabilityEvent {
     environment: 'test',
     sessionId: 'session',
     page: '/',
-    type: 'custom',
-    custom: { name },
   };
+}
+
+export function fakeEvent(name = 'test'): ObservabilityEvent {
+  return { ...fakeContext(), type: 'custom', custom: { name } };
+}
+
+export function fakeError(message = 'boom'): ObservabilityEvent {
+  return { ...fakeContext(), type: 'error', error: { source: 'manual', name: 'Error', message } };
 }
