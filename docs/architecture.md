@@ -87,7 +87,7 @@ Each step ends with typecheck, lint, format check, tests, and an architecture re
 | #   | Step                                                                                            | Status |
 | --- | ----------------------------------------------------------------------------------------------- | ------ |
 | 0   | Monorepo scaffold, tooling, docs, `CLAUDE.md`                                                   | ✅     |
-| 1   | `@fop/schema`: event model, limits, batch validation                                            |        |
+| 1   | `@fop/schema`: event model, limits, batch validation                                            | ✅     |
 | 2   | SDK core: `createObservability`, context enrichment, queue, size/time batching, fetch transport | ⏳     |
 | 3   | Collector: ingest endpoint, validation, idempotent in-memory store, query API                   |        |
 | 4   | SDK reliability: retry + backoff + jitter, offline pause, unload flush, queue cap, error dedup  |        |

@@ -1,0 +1,14 @@
+{
+  "name": "@fop/schema",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Event contract shared by the SDK (producer), the collector (validator) and the dashboard (consumer).",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}
