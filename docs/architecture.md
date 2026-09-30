@@ -52,6 +52,7 @@ The replaceable seams are explicit:
 | TanStack Query             | Keep (dashboard)    | The dashboard is a polling client of a read API: caching, `refetchInterval`, stale state and background refresh are exactly what it solves.                                       |
 | React Router               | Keep                | Several views, and filters belong in the URL (shareable, back-button friendly).                                                                                                   |
 | Vitest + RTL               | Keep                | One runner for all packages via Vitest projects.                                                                                                                                  |
+| _Added:_ `happy-dom`       | Add (tests)         | DOM for SDK/React tests. Current jsdom (30) requires Node ≥ 22.22; happy-dom is lighter, faster and sufficient for these APIs (storage, history, fetch primitives).               |
 | Playwright                 | Keep, **later**     | Its real value is the full-pipeline test (demo → collector → dashboard) and the "collector down, app still works" test. Not before the pipeline exists.                           |
 | ESLint + Prettier          | Keep                | Biome would be faster, but ESLint's type-aware rules and `react-hooks` plugin matter more here.                                                                                   |
 | _Added:_ pnpm workspaces   | Add                 | Four units with a shared contract. Workspaces enforce the dependency boundaries; Turborepo/Nx would be overhead at this size.                                                     |
@@ -88,8 +89,8 @@ Each step ends with typecheck, lint, format check, tests, and an architecture re
 | --- | ----------------------------------------------------------------------------------------------- | ------ |
 | 0   | Monorepo scaffold, tooling, docs, `CLAUDE.md`                                                   | ✅     |
 | 1   | `@fop/schema`: event model, limits, batch validation                                            | ✅     |
-| 2   | SDK core: `createObservability`, context enrichment, queue, size/time batching, fetch transport | ⏳     |
-| 3   | Collector: ingest endpoint, validation, idempotent in-memory store, query API                   |        |
+| 2   | SDK core: `createObservability`, context enrichment, queue, size/time batching, fetch transport | ✅     |
+| 3   | Collector: ingest endpoint, validation, idempotent in-memory store, query API                   | ⏳     |
 | 4   | SDK reliability: retry + backoff + jitter, offline pause, unload flush, queue cap, error dedup  |        |
 | 5   | SDK integrations: global errors, fetch instrumentation, navigation, Web Vitals, sampling        |        |
 | 6   | Demo app generating every event type                                                            |        |

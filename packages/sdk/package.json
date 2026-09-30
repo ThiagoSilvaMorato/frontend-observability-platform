@@ -1,0 +1,20 @@
+{
+  "name": "@fop/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Framework-agnostic browser SDK that captures telemetry and delivers it in batches.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fop/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.14.5"
+  }
+}

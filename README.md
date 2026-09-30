@@ -30,8 +30,21 @@ risks and roadmap, and [docs/decisions/](docs/decisions/) for decision records.
 
 ## Status
 
-Work in progress, built incrementally. Done: repository scaffold and the event schema.
-Next: SDK core.
+Work in progress, built incrementally. Done: repository scaffold, the event schema and the SDK
+core (manual capture, batching, fetch transport — ~1.9 KB gzipped). Next: the collector.
+
+```ts
+import { createObservability } from '@fop/sdk';
+
+const observability = createObservability({
+  application: 'demo-app',
+  environment: 'development',
+  endpoint: 'http://localhost:4318/v1/events',
+});
+
+observability.track('pokemon_search', { term: 'pikachu' });
+observability.captureError(error, { feature: 'search' });
+```
 
 ## Development
 
