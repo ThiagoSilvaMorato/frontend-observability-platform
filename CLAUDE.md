@@ -36,6 +36,7 @@ pnpm lint           # eslint (type-aware)
 pnpm format         # prettier --write
 pnpm test           # vitest, all projects
 pnpm vitest run packages/schema   # a single project
+pnpm --filter @fop/collector dev  # collector on :4318 (PORT to override)
 ```
 
 ## SDK invariants

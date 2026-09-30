@@ -1,0 +1,19 @@
+{
+  "name": "@fop/collector",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Ingest and query service: validates, dedupes, stores and aggregates events.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fop/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "tsx": "^4.23.15"
+  }
+}

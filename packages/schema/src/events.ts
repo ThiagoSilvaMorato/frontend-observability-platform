@@ -73,6 +73,21 @@ export type WebVitalName = (typeof WEB_VITAL_NAMES)[number];
 export const WEB_VITAL_RATINGS = ['good', 'needs-improvement', 'poor'] as const;
 export type WebVitalRating = (typeof WEB_VITAL_RATINGS)[number];
 
+/** Upper bounds of "good" and "needs-improvement", per web.dev. CLS is unitless; the rest are ms. */
+export const WEB_VITAL_THRESHOLDS: Record<WebVitalName, readonly [good: number, poor: number]> = {
+  LCP: [2500, 4000],
+  INP: [200, 500],
+  CLS: [0.1, 0.25],
+  FCP: [1800, 3000],
+  TTFB: [800, 1800],
+};
+
+export function rateWebVital(name: WebVitalName, value: number): WebVitalRating {
+  const [good, poor] = WEB_VITAL_THRESHOLDS[name];
+  if (value <= good) return 'good';
+  return value <= poor ? 'needs-improvement' : 'poor';
+}
+
 export interface WebVitalEvent extends EventContext {
   type: 'web_vital';
   webVital: {

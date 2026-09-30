@@ -30,8 +30,11 @@ risks and roadmap, and [docs/decisions/](docs/decisions/) for decision records.
 
 ## Status
 
-Work in progress, built incrementally. Done: repository scaffold, the event schema and the SDK
-core (manual capture, batching, fetch transport — ~1.9 KB gzipped). Next: the collector.
+Work in progress, built incrementally. Done: repository scaffold, the event schema, the SDK core
+(manual capture, batching, fetch transport — ~1.9 KB gzipped) and the collector (idempotent ingest,
+error grouping, query API over an in-memory store). Next: SDK reliability.
+
+Run the collector with `pnpm --filter @fop/collector dev` (port 4318, override with `PORT`).
 
 ```ts
 import { createObservability } from '@fop/sdk';
